@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbeitszeiterfassung Chatbot - Lehrkräfte</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+        }
+        .message-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .typing-indicator span {
+            animation: blink 1.4s infinite both;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes blink {
+            0%, 80%, 100% {
+                opacity: 0;
+            }
+            40% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <div class="flex items-center justify-center gap-3 mb-2">
+                <i class="fas fa-clock text-4xl text-indigo-600"></i>
+                <h1 class="text-3xl font-bold text-gray-800">Arbeitszeiterfassung</h1>
+            </div>
+            <p class="text-gray-600">Ihr Assistent für Fragen zur Arbeitszeiterfassung von Lehrkräften</p>
+        </header>
+
+        <!-- Chat Container -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="chat-container overflow-y-auto p-6 space-y-4">
+                <!-- Welcome Message -->
+                <div class="flex gap-3 message-enter">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white"></i>
+                    </div>
+                    <div class="bg-gray-100 rounded-2xl rounded-tl-none p-4 max-w-[80%]">
+                        <p class="text-gray-800">Hallo! 👋 Ich bin Ihr Assistent für Fragen zur Arbeitszeiterfassung von Lehrkräften. Wie kann ich Ihnen helfen?</p>
+                        <p class="text-gray-600 text-sm mt-2">Sie können mich z.B. fragen zu:</p>
+                        <ul class="text-gray-600 text-sm mt-1 list-disc list-inside">
+                            <li>Regelarbeitszeit und Deputatsstunden</li>
+                            <li>Überstunden und Mehrarbeit</li>
+                            <li>Teilzeit und Elternzeit</li>
+                            <li>Ferien und Urlaub</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Modal -->
+            <div id="emailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fas fa-envelope text-2xl text-indigo-600"></i>
+                        <h3 class="text-xl font-semibold text-gray-800">Frage an Ansprechperson senden</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Ihre Frage konnte nicht beantwortet werden. Möchten Sie diese an unsere Ansprechperson weiterleiten?</p>
+                    <form id="emailForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ihr Name</label>
+                            <input type="text" id="userName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Max Mustermann">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ihre E-Mail</label>
+                            <input type="email" id="userEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="max@schule.de">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ihre Frage</label>
+                            <textarea id="emailQuestion" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" readonly></textarea>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="button" onclick="closeEmailModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Abbrechen</button>
+                            <button type="submit" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                                <i class="fas fa-paper-plane mr-2"></i>Senden
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t border-gray-200 p-4 bg-gray-50">
+                <form id="chatForm" class="flex gap-3">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                        placeholder="Stellen Sie Ihre Frage zur Arbeitszeiterfassung..."
+                        autocomplete="off"
+                    >
+                    <button 
+                        type="submit" 
+                        id="sendButton"
+                        class="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="hidden sm:inline">Senden</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center mt-4 text-gray-500 text-sm">
+            <p>Powered by Claude AI | Bei Fragen wenden Sie sich an Ihre Ansprechperson</p>
+        </footer>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        let lastQuestion = '';
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const emailModal = document.getElementById('emailModal');
+        const emailForm = document.getElementById('emailForm');
+        const emailQuestion = document.getElementById('emailQuestion');
+
+        function addMessage(content, isUser = false, showEmailOption = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex gap-3 message-enter ${isUser ? 'flex-row-reverse' : ''}`;
+            
+            const avatar = isUser 
+                ? '<div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-white"></i></div>'
+                : '<div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-robot text-white"></i></div>';
+            
+            const bubbleClass = isUser 
+                ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-none' 
+                : 'bg-gray-100 text-gray-800 rounded-2xl rounded-tl-none';
+
+            let emailButton = '';
+            if (showEmailOption) {
+                emailButton = `
+                    <button onclick="openEmailModal()" class="mt-3 flex items-center gap-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                        <i class="fas fa-envelope"></i>
+                        Frage an Ansprechperson senden
+                    </button>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                ${avatar}
+                <div class="${bubbleClass} p-4 max-w-[80%]">
+                    <p class="whitespace-pre-wrap">${content}</p>
+                    ${emailButton}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'flex gap-3 message-enter';
+            typingDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-white"></i>
+                </div>
+                <div class="bg-gray-100 rounded-2xl rounded-tl-none p-4">
+                    <div class="typing-indicator flex gap-1">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        function openEmailModal() {
+            emailQuestion.value = lastQuestion;
+            emailModal.classList.remove('hidden');
+        }
+
+        function closeEmailModal() {
+            emailModal.classList.add('hidden');
+        }
+
+        emailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userName = document.getElementById('userName').value;
+            const userEmail = document.getElementById('userEmail').value;
+            const question = emailQuestion.value;
+
+            try {
+                const response = await fetch('/.netlify/functions/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, userEmail, userName })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeEmailModal();
+                    addMessage('✅ Ihre Frage wurde erfolgreich an die Ansprechperson gesendet. Sie werden zeitnah eine Antwort erhalten.');
+                } else {
+                    alert('Fehler beim Senden der E-Mail. Bitte versuchen Sie es später erneut.');
+                }
+            } catch (error) {
+                console.error('Email error:', error);
+                alert('Fehler beim Senden der E-Mail. Bitte versuchen Sie es später erneut.');
+            }
+        });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            lastQuestion = message;
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message, 
+                        conversationHistory 
+                    })
+                });
+
+                const data = await response.json();
+                removeTypingIndicator();
+
+                if (data.error) {
+                    addMessage('Entschuldigung, es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
+                } else {
+                    conversationHistory = data.conversationHistory;
+                    addMessage(data.response, false, data.cannotAnswer);
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                removeTypingIndicator();
+                addMessage('Entschuldigung, es ist ein Verbindungsfehler aufgetreten. Bitte versuchen Sie es erneut.');
+            }
+
+            sendButton.disabled = false;
+            messageInput.focus();
+        });
+
+        emailModal.addEventListener('click', (e) => {
+            if (e.target === emailModal) closeEmailModal();
+        });
+    </script>
+</body>
+</html>
